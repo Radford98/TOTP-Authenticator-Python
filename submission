@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+"""
+Author: Brad Powell
+Assignment: Program 2
+Class: CS 372-400 Intro to Security, Fall 2019
+Last Modified: 11/28/2019
+Description: Generates a QR code to use with Google Authenticator or displays the appropriate passcode,
+depending on the commandline given.
+"""
+
+import qrcode
+import sys
+
+
