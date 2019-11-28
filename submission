@@ -5,10 +5,46 @@ Assignment: Program 2
 Class: CS 372-400 Intro to Security, Fall 2019
 Last Modified: 11/28/2019
 Description: Generates a QR code to use with Google Authenticator or displays the appropriate passcode,
-depending on the commandline given.
+depending on the command line given. The function to make the QR code is expandable beyond the scope of
+this assignment, so it uses the default values.
+Citations:
+	Google Authenticator URI: https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+	QR Code Library: https://pypi.org/project/qrcode/
 """
 
-import qrcode
-import sys
+import qrcode	# Imports QR Code library
+import sys	# Used for command line arguments
+from PIL import Image, ImageDraw
 
+"""
+MakeTOTPQR: Creates a QR code to use with Google Authenticator and prints it with an ASCII format for the user to
+scan. It can accept a variety of parameters to customize the QR code, but has default values for each of them.
+Pre: None required, but can accept username, issuer, secret, algorithm, digits, and period.
+Post: QR Code with encoded URI printed to screen.
+"""
+def MakeTOTPQR(username="alice@google.com", issuer="Example", secret="JBSWY3DPEHPK3PXP", algorithm="SHA1", digits="6", period="30"):
+	# Create a QRCode object
+	qr = qrcode.QRCode()
+	# Create the URI key for the QR Code using the (possibly default) function parameters.
+	data = "otpauth://totp/" + issuer + ":" + username + "?secret=" + secret + "&issuer=" + issuer + "&algorithm=" + algorithm + "&digits=" + digits + "&period=" + period
+	# Add the data to the QR Code object and create and print the QR Code
+	qr.add_data(data)
+	qr.make()
+	qr.print_ascii()
+	# Print some newlines so the QR Code isn't at the very bottom of the screen (to make it easier to scan)
+	print("\n\n\n\n\n\n")
+	
+	img = Image.fromarray(qr.get_matrix())
+	img.save("qrcode.jpeg")
 
+if __name__ == "__main__":
+	# Validate command line parameters
+	if len(sys.argv) != 2 or (sys.argv[1] != "--generate-qr" and sys.argv[1] != "--get-otp"):
+		sys.exit("Usage: " + sys.argv[0] + " --generate-qr OR --get-otp")
+	# Execute appropriate function
+	if sys.argv[1] == "--generate-qr":
+		MakeTOTPQR()
+	elif sys.argv[1] == "--get-otp":
+		print("work in progress")
+		img = Image.new('RGB', (60, 30), color = 'red')
+		img.save('pil_red.png')
