@@ -3,7 +3,7 @@
 Author: Brad Powell
 Assignment: Program 2
 Class: CS 372-400 Intro to Security, Fall 2019
-Last Modified: 11/28/2019
+Last Modified: 11/30/2019
 Description: Generates a QR code to use with Google Authenticator or displays the appropriate passcode,
 depending on the command line given. The function to make the QR code is expandable beyond the scope of
 this assignment, so it uses the default values.
@@ -14,13 +14,13 @@ Citations:
 
 import qrcode	# Imports QR Code library
 import sys	# Used for command line arguments
-from PIL import Image, ImageDraw
 
 """
 MakeTOTPQR: Creates a QR code to use with Google Authenticator and prints it with an ASCII format for the user to
 scan. It can accept a variety of parameters to customize the QR code, but has default values for each of them.
+Can also save a jpg version if appropriate code is uncommented.
 Pre: None required, but can accept username, issuer, secret, algorithm, digits, and period.
-Post: QR Code with encoded URI printed to screen.
+Post: QR Code with encoded URI printed to screen. Saved jpg file (if code is uncommented)
 """
 def MakeTOTPQR(username="alice@google.com", issuer="Example", secret="JBSWY3DPEHPK3PXP", algorithm="SHA1", digits="6", period="30"):
 	# Create a QRCode object
@@ -33,9 +33,14 @@ def MakeTOTPQR(username="alice@google.com", issuer="Example", secret="JBSWY3DPEH
 	qr.print_ascii()
 	# Print some newlines so the QR Code isn't at the very bottom of the screen (to make it easier to scan)
 	print("\n\n\n\n\n\n")
-	
-	img = Image.fromarray(qr.get_matrix())
-	img.save("qrcode.jpeg")
+
+"""
+Flip does not have the necessary qrcode.modules.pil module, so it can't properly create and save
+the qrcode as a jpeg. The following code was ran on my local machine to create the image file that is included
+with this submission.
+	img = qr.make_image()
+	img.save("qrcode.jpg")
+"""
 
 if __name__ == "__main__":
 	# Validate command line parameters
