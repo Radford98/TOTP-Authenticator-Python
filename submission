@@ -9,11 +9,34 @@ depending on the command line given. The function to make the QR code is expanda
 this assignment, so it uses the default values.
 Citations:
 	Google Authenticator URI: https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+	RFC for TOTP: https://tools.ietf.org/html/rfc6238
+	RFC for HOTP formula: https://tools.ietf.org/html/rfc4226#section-5
+	Told me TOTP needed specific-sized byte arrays and pointed me to HOTP RFC:
+		https://medium.com/concerning-pharo/the-code-behind-google-authenticator-9c59c606a572
+
 	QR Code Library: https://pypi.org/project/qrcode/
+	HMAC module: https://docs.python.org/3/library/hmac.html
+	hashlib module: https://docs.python.org/3/library/hashlib.html
+	base64 module: https://docs.python.org/3/library/base64.html?highlight=base64#module-base64
+	Struct module: https://docs.python.org/2/library/struct.html
+	Time module: https://docs.python.org/3/library/time.html
+
+	ord() function:
+		https://stackoverflow.com/questions/227459/how-to-get-the-ascii-value-of-a-character
+		https://www.geeksforgeeks.org/ord-function-python/
+
+	Use of struct in converting the counter:
+		https://github.com/mcaimi/python-otp-lib
+		https://stackoverflow.com/questions/42546493/generate-a-10-digit-totp-password-with-a-certain-key
 """
 
-import qrcode	# Imports QR Code library
-import sys	# Used for command line arguments
+import qrcode		# Imports QR Code library
+import sys		# Used for command line arguments
+import hmac		# Used for TOTP encryption
+import hashlib
+import base64
+import struct
+from time import time	# Get Unix Time for TOTP
 
 """
 MakeTOTPQR: Creates a QR code to use with Google Authenticator and prints it with an ASCII format for the user to
@@ -22,11 +45,11 @@ Can also save a jpg version if appropriate code is uncommented.
 Pre: None required, but can accept username, issuer, secret, algorithm, digits, and period.
 Post: QR Code with encoded URI printed to screen. Saved jpg file (if code is uncommented)
 """
-def MakeTOTPQR(username="alice@google.com", issuer="Example", secret="JBSWY3DPEHPK3PXP", algorithm="SHA1", digits="6", period="30"):
+def MakeTOTPQR(username="alice@google.com", issuer="Example", secret="JBSWY3DPEHPK3PXP", algorithm="SHA1", digits=6, period=30):
 	# Create a QRCode object
 	qr = qrcode.QRCode()
 	# Create the URI key for the QR Code using the (possibly default) function parameters.
-	data = "otpauth://totp/" + issuer + ":" + username + "?secret=" + secret + "&issuer=" + issuer + "&algorithm=" + algorithm + "&digits=" + digits + "&period=" + period
+	data = "otpauth://totp/" + issuer + ":" + username + "?secret=" + secret + "&issuer=" + issuer + "&algorithm=" + algorithm + "&digits=" + str(digits) + "&period=" + str(period)
 	# Add the data to the QR Code object and create and print the QR Code
 	qr.add_data(data)
 	qr.make()
@@ -42,6 +65,50 @@ with this submission.
 	img.save("qrcode.jpg")
 """
 
+
+"""
+GetTOTP: Print the same TOTP code as Google Authenticator with the QR code printed by this program with the
+same parameters.
+Pre: None required, but can accept username, issuer, secret, algorithm, digits, and period.
+Post: TOTP code printed to screen.
+"""
+def GetTOTP(secret="JBSWY3DPEHPK3PXP", digits=6, period=30):
+	# Convert key into a byte array format.
+	key = base64.b32decode(secret)
+
+	# Convert counter into byte array in a string format. It must be of size 8, and Q converts to
+	# unsigned long long integers. HOTP/TOTP values are treated as big-endian, which > converts to.
+	# The struct module is used because it converts this to a properly formatted string,
+	# which hmac needs. Uses period to have a variable amount of valid time.
+	byteCounter = struct.pack(">Q", time()//period)
+
+	# Create a digest of the hash
+	hsh = hmac.new(key, byteCounter, hashlib.sha1).digest()
+
+	# Find the offset. ord() converts a character, even the non-traditional ones in the digest
+	# to an ASCII number. The offset is the last 4 bits of the last byte.
+	# The hex 0xf in binary is 0000 1111,  which can be used like a mask to preserve the last 4 bits.
+	offset = ord(hsh[-1]) & 0xf
+
+	# Use the offset to truncate down to 32 bits; Python slices are inclusive beginning,
+	# non-inclusive end, so need +4 instead of the +3 described in RFC.
+	hsh = hsh[offset:offset+4]
+
+	# The hash is an encoded string and needs to be unpacked. We now have 4 bytes of information,
+	# so I is used instead of Q (see above). struct.unpack returns a tuple with only 1 value, so use the
+	# index to save that value.
+	hsh = struct.unpack(">I", hsh)[0]
+
+	# The truncated value uses the last 31 bits, so we AND the hash like we did with the offset
+	hsh = hsh & 0x7fffffff
+
+	# Finally, the number is modulo'd with the number of digits long the code needs to be.
+	hsh = hsh % 10**digits
+
+	# Print the code to the screen
+	print(hsh)
+
+########### MAIN #############
 if __name__ == "__main__":
 	# Validate command line parameters
 	if len(sys.argv) != 2 or (sys.argv[1] != "--generate-qr" and sys.argv[1] != "--get-otp"):
@@ -50,6 +117,4 @@ if __name__ == "__main__":
 	if sys.argv[1] == "--generate-qr":
 		MakeTOTPQR()
 	elif sys.argv[1] == "--get-otp":
-		print("work in progress")
-		img = Image.new('RGB', (60, 30), color = 'red')
-		img.save('pil_red.png')
+		GetTOTP()
