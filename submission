@@ -69,7 +69,7 @@ with this submission.
 """
 GetTOTP: Print the same TOTP code as Google Authenticator with the QR code printed by this program with the
 same parameters.
-Pre: None required, but can accept username, issuer, secret, algorithm, digits, and period.
+Pre: None required, but can accept a secret, digits, and/or period.
 Post: TOTP code printed to screen.
 """
 def GetTOTP(secret="JBSWY3DPEHPK3PXP", digits=6, period=30):
